@@ -1,26 +1,12 @@
 name: WLED CI
 
 on:
-  workflow_dispatch: # Добавляет кнопку Run workflow
-  push:
-    branches: [ main ]
-
-jobs:
-  build_custom_wled:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Pythonname: WLED CI
-
-on:
   workflow_dispatch:
   push:
     branches: [ main ]
 
 permissions:
-  contents: write # Разрешаем скрипту выкладывать чистый .bin в Releases
+  contents: write
 
 jobs:
   build_custom_wled:
@@ -40,36 +26,32 @@ jobs:
       - name: Build esp32c3dev
         run: pio run -e esp32c3dev
 
-      - name: Prepare clean binary
-        run: cp .pio/build/esp32c3dev/firmware.bin WLED_0.16.0_ESP32-C3.bin
+      - name: Prepare clean .bin files
+        run: |
+          cp .pio/build/esp32c3dev/firmware.bin WLED_0.16.0_ESP32-C3_OTA.bin
+          python3 -m esptool --chip esp32c3 merge_bin -o WLED_0.16.0_ESP32-C3_FULL_FACTORY.bin \
+            --flash_mode dio --flash_size 4MB \
+            0x0 .pio/build/esp32c3dev/bootloader.bin \
+            0x8000 .pio/build/esp32c3dev/partitions.bin \
+            0x10000 .pio/build/esp32c3dev/firmware.bin || true
+
+      - name: Create or update Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f v0.16.0-blur
+          git push origin v0.16.0-blur --force
 
       - name: Publish direct .bin to Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "WLED Custom Build (ESP32-C3 Blur)"
-          files: WLED_0.16.0_ESP32-C3.bin
+          tag_name: v0.16.0-blur
+          name: "WLED 0.16.0 ESP32-C3 (Blur + AudioReactive)"
+          body: "Чистые .bin файлы без архивов. Качай **OTA.bin** для обновления через браузер (Manual OTA Update)."
+          files: |
+            WLED_0.16.0_ESP32-C3_OTA.bin
+            WLED_0.16.0_ESP32-C3_FULL_FACTORY.bin
           prerelease: false
-
-      - name: Upload Flat Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WLED_0.16.0_ESP32-C3
-          path: WLED_0.16.0_ESP32-C3.bin
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install PlatformIO
-        run: pip install --upgrade platformio
-
-      - name: Build esp32c3dev
-        run: pio run -e esp32c3dev
-
-      - name: Upload Firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: WLED-ESP32C3-Blur
-          path: |
-            .pio/build/esp32c3dev/firmware.bin
-            build_output/firmware/*.bin
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
