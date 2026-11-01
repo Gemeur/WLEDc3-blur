@@ -12,7 +12,50 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Pythonname: WLED CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write # Разрешаем скрипту выкладывать чистый .bin в Releases
+
+jobs:
+  build_custom_wled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build esp32c3dev
+        run: pio run -e esp32c3dev
+
+      - name: Prepare clean binary
+        run: cp .pio/build/esp32c3dev/firmware.bin WLED_0.16.0_ESP32-C3.bin
+
+      - name: Publish direct .bin to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "WLED Custom Build (ESP32-C3 Blur)"
+          files: WLED_0.16.0_ESP32-C3.bin
+          prerelease: false
+
+      - name: Upload Flat Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED_0.16.0_ESP32-C3
+          path: WLED_0.16.0_ESP32-C3.bin
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
