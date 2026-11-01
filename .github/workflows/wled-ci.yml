@@ -1,11 +1,32 @@
 name: WLED CI
 
 on:
+  workflow_dispatch: # Добавляет кнопку Run workflow
   push:
-    branches:
-      - '*'
-  pull_request:
+    branches: [ main ]
 
 jobs:
-  wled_build:
-    uses: ./.github/workflows/build.yml
+  build_custom_wled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build esp32c3dev
+        run: pio run -e esp32c3dev
+
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-ESP32C3-Blur
+          path: |
+            .pio/build/esp32c3dev/firmware.bin
+            build_output/firmware/*.bin
