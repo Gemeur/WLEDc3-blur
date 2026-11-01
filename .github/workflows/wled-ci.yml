@@ -15,6 +15,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Remove dev warning banner and rebuild Web UI
+        run: |
+          sed -i 's/⚠ DEVELOPMENT BUILD — WORK IN PROGRESS — NOT FOR PRODUCTION USE//g' wled00/data/*.htm wled00/html_*.h || true
+          sed -i 's/id="dev-warn"/style="display:none!important" id="dev-warn"/g' wled00/data/*.htm wled00/html_*.h || true
+          npm install
+          npm run build || true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -29,11 +36,6 @@ jobs:
       - name: Prepare clean .bin files
         run: |
           cp .pio/build/esp32c3dev/firmware.bin WLED_0.16.0_ESP32-C3_OTA.bin
-          python3 -m esptool --chip esp32c3 merge_bin -o WLED_0.16.0_ESP32-C3_FULL_FACTORY.bin \
-            --flash_mode dio --flash_size 4MB \
-            0x0 .pio/build/esp32c3dev/bootloader.bin \
-            0x8000 .pio/build/esp32c3dev/partitions.bin \
-            0x10000 .pio/build/esp32c3dev/firmware.bin || true
 
       - name: Create or update Git Tag
         run: |
@@ -47,10 +49,8 @@ jobs:
         with:
           tag_name: v0.16.0-blur
           name: "WLED 0.16.0 ESP32-C3 (Blur + AudioReactive)"
-          body: "Чистые .bin файлы без архивов. Качай **OTA.bin** для обновления через браузер (Manual OTA Update)."
-          files: |
-            WLED_0.16.0_ESP32-C3_OTA.bin
-            WLED_0.16.0_ESP32-C3_FULL_FACTORY.bin
+          body: "Чистый .bin без плашки DEVELOPMENT BUILD и с многопроходным размытием."
+          files: WLED_0.16.0_ESP32-C3_OTA.bin
           prerelease: false
           overwrite_files: true
         env:
