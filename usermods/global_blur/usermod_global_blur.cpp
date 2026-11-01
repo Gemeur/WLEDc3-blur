@@ -54,14 +54,14 @@ class GlobalBlurUsermod : public Usermod {
     }
 
     void loop() override {
-      EVERY_N_SECONDS(1) {
-        allocateBuffer();
-      }
+      // Оставляем пустым, проверка перенесена в отрисовку
     }
 
     void handleOverlayDraw() override {
       if (!enabled) return;
       
+      allocateBuffer(); // Если изменили число диодов в настройках — перевыделяем буфер
+
       if (spatialBlurAmount > 0) {
         for (uint8_t i = 0; i < strip.getMaxSegments(); i++) {
           Segment& seg = strip.getSegment(i);
@@ -87,18 +87,20 @@ class GlobalBlurUsermod : public Usermod {
     }
 
     void addToConfig(JsonObject& root) override {
-      JsonObject top = root.createNestedObject("Global_Blur");
+      JsonObject top = root["Global_Blur"];
+      if (top.isNull()) top = root.createNestedObject("Global_Blur");
       top["enabled"] = enabled;
       top["spatial_amount"] = spatialBlurAmount;
       top["motion_amount"] = motionBlurAmount;
     }
 
-    void readFromConfig(JsonObject& root) override {
+    bool readFromConfig(JsonObject& root) override {
       JsonObject top = root["Global_Blur"];
-      if (top.isNull()) return;
+      if (top.isNull()) return false;
       getJsonValue(top["enabled"], enabled);
       getJsonValue(top["spatial_amount"], spatialBlurAmount);
       getJsonValue(top["motion_amount"], motionBlurAmount);
+      return true;
     }
     
     uint16_t getId() override {
@@ -106,6 +108,5 @@ class GlobalBlurUsermod : public Usermod {
     }
 };
 
-// Вот эта магия в самом конце регистрирует мод автоматически
 static GlobalBlurUsermod myBlurUsermod;
 REGISTER_USERMOD(myBlurUsermod);
