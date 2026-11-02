@@ -17,14 +17,11 @@ jobs:
 
       - name: Remove dev warning banner and rebuild Web UI
         run: |
-          # Надёжный способ: устанавливаем флаг window.__noDevBanner = true перед загрузкой common.js
+          # Удаляем статическую плашку из index.htm
+          sed -i '/⚠ DEVELOPMENT BUILD — WORK IN PROGRESS — NOT FOR PRODUCTION USE/d' wled00/data/index.htm || true
+          # Добавляем флаг для динамического баннера (настройки, welcome и т.д.)
           sed -i 's|<script src="common.js"></script>|<script>window.__noDevBanner = true;</script>\n<script src="common.js"></script>|' wled00/data/index.htm || true
-
-          # Удаляем статичную плашку со страницы welcome (если есть)
-          sed -i '/id="devBanner"/d' wled00/data/welcome.htm || true
-          sed -i '/id="devBannerStyle"/,/<\/style>/d' wled00/data/welcome.htm || true
-
-          # Пересобираем веб-интерфейс, чтобы изменения попали в html_*.h
+          # Пересобираем UI
           npm install
           npm run build || true
 
