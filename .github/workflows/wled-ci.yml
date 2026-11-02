@@ -17,16 +17,14 @@ jobs:
 
       - name: Remove dev warning banner and rebuild Web UI
         run: |
-          # 1) В common.js: скрываем #devBanner через CSS и убираем принудительный отступ сверху у body
-          sed -i 's|#devBanner{|#devBanner{display:none!important;|g' wled00/data/common.js || true
-          sed -i 's|body{padding-top:24px !important;}||g' wled00/data/common.js || true
+          # Надёжный способ: устанавливаем флаг window.__noDevBanner = true перед загрузкой common.js
+          sed -i 's|<script src="common.js"></script>|<script>window.__noDevBanner = true;</script>\n<script src="common.js"></script>|' wled00/data/index.htm || true
 
-          # 2) В welcome.htm: удаляем статичную плашку и связанный с ней <style>...</style>
+          # Удаляем статичную плашку со страницы welcome (если есть)
           sed -i '/id="devBanner"/d' wled00/data/welcome.htm || true
           sed -i '/id="devBannerStyle"/,/<\/style>/d' wled00/data/welcome.htm || true
 
-          # 3) Пересобираем веб-интерфейс из уже исправленных исходников
-          #    (html_*.h перегенерируются из data/*, поэтому чистить их вручную не нужно)
+          # Пересобираем веб-интерфейс, чтобы изменения попали в html_*.h
           npm install
           npm run build || true
 
